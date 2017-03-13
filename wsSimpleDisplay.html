@@ -34,6 +34,10 @@
 var dataURL="http://cam.aprsworld.com:8888/data/now.json/A4753";
 var refreshSeconds=5;
 
+//var hiddenDataID = ["48265c9ecebcb55c15662a5a66faa51a","00dac0c4199a50639db710d3c958908","0ca41badb637f4b03936f6d0e59e390c","cd836789f651b02071e05e045f9511b5"];
+var hiddenDataID = [];
+
+
 $.ajaxSetup({ cache: false }); 
 
 /* extract filename after last / and before ? */
@@ -43,20 +47,37 @@ function filename(path){
 }
 
 function hideRow() {
-	/* find the button that got us here */
-	var bid = this.id; 
 	/* find the table row ID that the button is in */
 	var trid = $(this).closest('tr').attr('id');  
+	/* find the table ID that the button is in */
+	var tableid = $(this).closest('table').attr('id');  
 
-	/* detach the row from autoData */
+	/* detach the row */
 	var moving = $('#' + trid).detach();
-	/* attach the row to autoDataHidden */
-	$("#autoDataHidden").append(moving);
+	if ( "autoData" === tableid ) {
+		/* attach the row to autoDataHidden */
+		$("#autoDataHidden").append(moving);
 
-	console.log('hideRow() bid=' + bid + ' trid=' + trid);
+		/* add to hidden data IDs array, if it isn't there already */
+		if ( -1 == $.inArray(trid,hiddenDataID) ) {
+			hiddenDataID.push(trid);
+		}
+	} else {
+		/* attach the row to autoData */
+		$("#autoData").append(moving);
+
+		/* remove from hidden data IDs array */
+		hiddenDataID.splice( $.inArray(trid, hiddenDataID), 1);
+	}
+
+
+	console.log('hideRow() tableid=' + tableid + ' trid=' + trid);
+
+	$("#spanHiddenDataID").html(hiddenDataID.toString());
 }
 
 function loadNewData(){
+
 	$.getJSON(dataURL, 
 		function(data) {
 			hideWarn();
@@ -72,23 +93,20 @@ function loadNewData(){
 					/* find the table body for autoData */
 					var tbody = $('#autoData').children('tbody');
 
+//					if ( -1 != $.inArray(index,hiddenDataID) ) {
+//						console.log(' hidden: ' + data.sensors[index].title);
+//					} else { 
+//						console.log('visible: ' + data.sensors[index].title);
+//					}
+
 
 					var rowCode = '<tr id="autoData_' + index + '"><td class="right"><span style="font-weight: bold;">' + data.sensors[index].title + '</span><br />(' + index + ')</td><td>' + data.sensors[index].value + '</td><td>' + data.sensors[index].units + '<span class="ui-icon ui-icon-trash" />&nbsp;</span></td></tr>';
 
 					if ( $("#autoData_" + index).length ) {
-						var wasHidden=false;
-
-						if ( ! $("#autoData_" + index).is(":visible") ) {
-							wasHidden=true;
-						}
-
-						// replace row contents
+						/* replace row contents */
 						$("#autoData_" + index).replaceWith(rowCode);
-												
-						if ( wasHidden ) {
-//							$("#autoData_" + index).hide();
-						}	
 					} else {
+						/* add row to table */
 						console.log('adding row to table');
 						tbody.append(rowCode);
 					}
@@ -180,6 +198,7 @@ $(document).ready(function(){
 	/* put dataURL on page */
 	$("#spanDataURL").html(dataURL);
 	$("#spanRefreshSeconds").html(refreshSeconds);
+//	$("#autoDataHidden").hide();
 
 //	$("#delete_123").click(function() {
 
@@ -198,7 +217,6 @@ $(document).ready(function(){
 	</div>
 
 	<div class="pure-u-1 pure-u-sm-1-2 l-box">
-<h2>Visible Rows</h2>
 <table id="autoData" class="pure-table pure-table-horizontal pure-table-striped">
 	<thead>
 		<tr>
@@ -249,6 +267,7 @@ $(document).ready(function(){
 <ul>
 	<li>dataURL=<span id='spanDataURL'>loading</span></li>
 	<li>refreshSeconds: <span id='spanRefreshSeconds'>loading</li>
+	<li>hiddenDataID: <span id='spanHiddenDataID'>loading</li>
 </ul>
 
 	</div>
