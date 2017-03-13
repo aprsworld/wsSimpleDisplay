@@ -20,39 +20,14 @@
 	<body>
 
 <script type="text/JavaScript">
+var dataURL="http://cam.aprsworld.com:8888/data/now.json/A4753";
 
 $.ajaxSetup({ cache: false }); 
 
-function commaSeparateNumber(val){
-	while (/(\d+)(\d{3})/.test(val.toString())){
-		val = val.toString().replace(/(\d+)(\d{3})/, '$1'+','+'$2');
-	}
-	return val;
-}
-
-function cardinalDirection(degrees) {
-	if ( degrees >= 338 || degrees < 23 )
-		return "N";
-	if ( degrees < 68 )
-		return "NE";
-	if ( degrees < 113 )
-		return "E";
-	if ( degrees < 158 )
-		return "SE";
-	if ( degrees < 203 )
-		return "S";
-	if ( degrees < 248 )
-		return "SW";
-	if ( degrees < 293 )
-		return "W";
-
-	return "NW";
-} 
-
 function loadNewData(){
-	var url="http://cam.aprsworld.com:8888/data/now.json/A4753";
+	console.log('loadNewData() dataURL=' + dataURL);
 
-	$.getJSON(url, 
+	$.getJSON(dataURL, 
 		function(data) {
 			hideWarn();
 
@@ -68,17 +43,14 @@ function loadNewData(){
 					var tbody = $('#autoData').children('tbody');
 
 
-					//Then if no tbody just select your table 
-					var table = tbody.length ? tbody : $('#autoData');
-
-					var rowCode = '<tr id="autoData_' + index + '"><td class="right"><b>' + data.sensors[index].title + '</b></td><td>' + data.sensors[index].value + '</td></tr>';
+					var rowCode = '<tr id="autoData_' + index + '"><td class="right"><b>' + data.sensors[index].title + '</b></td><td>' + data.sensors[index].value + '</td><td>' + data.sensors[index].units + '</td></tr>';
 
 					if ( $("#autoData_" + index).length ) {
 						// replace row contents
 						$("#autoData_" + index).replaceWith(rowCode);
 					} else {
 						console.log('adding row to table');
-						table.append(rowCode);
+						tbody.append(rowCode);
 					}
 
 				}
@@ -109,6 +81,21 @@ function hideWarn(){
 }
 
 $(document).ready(function(){
+	$.urlParam = function(name){
+		var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+		if ( results==null ) {
+			return null;
+		} else {
+			return results[1] || 0;
+		}
+	}
+
+	if ( $.urlParam('dataURL') !== null && $.urlParam('dataURL').length ) {
+		dataURL=$.urlParam('dataURL');
+		console.log('Using data from: ' + dataURL + ' (as specified from URL parameter)');
+	}
+
+	/* setup AJAX data source */
 	$( document ).ajaxError(function(event){
 		console.log("no response from JSON server");
 		$("#connection_warn").show();
@@ -127,8 +114,13 @@ $(document).ready(function(){
 			var data = $(this).sortable('serialize');
 
 			console.log('sortable serialize: ' + data);
+
+			/* could do AJAX to send to server to store */
     	}
 	});
+
+	$("#spanDataURL").html(dataURL);
+
 });
 </script>
 <div id="connection_warn" style="text-align: center; width: 800px; padding: 10px; margin-right: auto; margin-left: auto; background-color: orange; color: white; display: none;" onclick="hideWarn()">
@@ -141,15 +133,19 @@ $(document).ready(function(){
 		<tr>
 			<th>title</th>
 			<th>value</th>
+			<th>units</th>
 		</tr>
 	</thead>
 	<tbody>
 <!-- will insert data automatically here -->
 	</tbody>
 </table>
+This table is sortable. Click and drag a row to re-order.
 
 <h1>Live Camera</h1>
 <img class="pure-img" src="http://data.asrichards.com/images/logo.png" id="camStatic0" alt="Web Camera 0" style="width: 100%; margin-left: auto; margin-right: auto; display: block;" />
 
+<h1>Meta Data</h1>
+Data source URL: <span id='spanDataURL'>loading</span>
 </body>
 </html>
