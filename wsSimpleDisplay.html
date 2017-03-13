@@ -15,6 +15,10 @@
 .right {
 	text-align: right;
 }
+
+body {
+	margin: 10px;
+}
 </style>
 	</head>
 	<body>
@@ -100,14 +104,10 @@ $(document).ready(function(){
 		console.log("no response from JSON server");
 		$("#connection_warn").show();
 		$("#connection_warn").append(event);
-		//$("#cover").hide();
-		//clearInterval(loadTimerVar);
 	});
 	loadNewData();
 
 	/* make auto data table sortable */
-//	$('#autoData').children('tbody').sortable();
-
 	$('#autoData').children('tbody').sortable({
 		axis: 'y',
 		update: function (event, ui) {
@@ -127,6 +127,10 @@ $(document).ready(function(){
 	<h1>No Response From Server. Please check to make sure you are still connected to the internet</h1>
 </div>
 
+<!--<h1>Live Camera</h1>-->
+<img class="pure-img" src="http://data.asrichards.com/images/logo.png" id="camStatic0" alt="Web Camera 0" style="width: 100%; margin-left: auto; margin-right: auto; display: block;" />
+
+
 <h1>Live Data</h1>
 <table id="autoData" class="pure-table pure-table-horizontal pure-table-striped">
 	<thead>
@@ -141,9 +145,6 @@ $(document).ready(function(){
 	</tbody>
 </table>
 This table is sortable. Click and drag a row to re-order.
-
-<h1>Live Camera</h1>
-<img class="pure-img" src="http://data.asrichards.com/images/logo.png" id="camStatic0" alt="Web Camera 0" style="width: 100%; margin-left: auto; margin-right: auto; display: block;" />
 
 <h1>Meta Data</h1>
 Data source URL: <span id='spanDataURL'>loading</span>
