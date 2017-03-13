@@ -32,6 +32,7 @@
 
 <script type="text/JavaScript">
 var dataURL="http://cam.aprsworld.com:8888/data/now.json/A4753";
+var refreshSeconds=5;
 
 $.ajaxSetup({ cache: false }); 
 
@@ -39,6 +40,14 @@ $.ajaxSetup({ cache: false });
 function filename(path){
 	path = path.substring(path.lastIndexOf("/")+ 1);
 	return (path.match(/[^.]+(\.[^?#]+)?/) || [])[0];
+}
+
+function hideRow() {
+//	alert("Be a hideRow. The world needs more hidden rows.");
+	var bid = this.id; // button ID 
+	var trid = $(this).closest('tr').attr('id'); // table row ID 
+	$('#' + trid).hide();
+	console.log('hideRow() bid=' + bid + ' trid=' + trid);
 }
 
 function loadNewData(){
@@ -52,17 +61,25 @@ function loadNewData(){
 			/* iterate through data.sensors */
 			$.each(data.sensors, function( index, value ) {
 				if ( data.sensors[index].title !== undefined ) {
-//						console.log( "data.sensors[" + index + "]: " + data.sensors[index].title + "=" + data.sensors[index].value);
-
 					//Try to get tbody first with jquery children. works faster!
 					var tbody = $('#autoData').children('tbody');
 
 
-					var rowCode = '<tr id="autoData_' + index + '"><td class="right"><b>' + data.sensors[index].title + '</b></td><td>' + data.sensors[index].value + '</td><td>' + data.sensors[index].units + '</td></tr>';
+					var rowCode = '<tr id="autoData_' + index + '"><td class="right"><span style="font-weight: bold;">' + data.sensors[index].title + '</span></td><td>' + data.sensors[index].value + '</td><td>' + data.sensors[index].units + '<span class="ui-icon ui-icon-trash" />&nbsp;</span></td></tr>';
 
 					if ( $("#autoData_" + index).length ) {
+						var wasHidden=false;
+
+						if ( ! $("#autoData_" + index).is(":visible") ) {
+							wasHidden=true;
+						}
+
 						// replace row contents
 						$("#autoData_" + index).replaceWith(rowCode);
+												
+						if ( wasHidden ) {
+							$("#autoData_" + index).hide();
+						}	
 					} else {
 						console.log('adding row to table');
 						tbody.append(rowCode);
@@ -70,6 +87,18 @@ function loadNewData(){
 
 				}
 			});
+			$(".ui-icon-trash").bind("click",hideRow);
+
+			/* bind any action to any button in autoData table row */
+			$('#autoData tr input[type=button]').click(function(){
+				var bid = this.id; // button ID 
+				var trid = $(this).closest('tr').attr('id'); // table row ID 
+				$('#' + trid).hide();
+				console.log('bid=' + bid + ' trid=' + trid);
+				/* hide the first column */
+//				$('td:nth-child(1),th:nth-child(1)').hide();
+			});
+
 
 			$('#displayName').html(data.displayName);
 
@@ -92,7 +121,7 @@ function loadNewData(){
 		}
 		); 
 
-	setTimeout(loadNewData,5000);
+	setTimeout(loadNewData,refreshSeconds*1000);
 }
 
 function hideWarn(){
@@ -111,7 +140,11 @@ $(document).ready(function(){
 
 	if ( $.urlParam('dataURL') !== null && $.urlParam('dataURL').length ) {
 		dataURL=$.urlParam('dataURL');
-		console.log('Using data from: ' + dataURL + ' (as specified from URL parameter)');
+		console.log('# dataURL: ' + dataURL + ' (as specified from URL parameter)');
+	}
+	if ( $.urlParam('refreshSeconds') !== null && $.urlParam('refreshSeconds').length ) {
+		refreshSeconds=$.urlParam('refreshSeconds');
+		console.log('# refreshSeconds: ' + refreshSeconds + ' (as specified from URL parameter)');
 	}
 
 	/* setup AJAX data source */
@@ -136,12 +169,16 @@ $(document).ready(function(){
 
 	/* put dataURL on page */
 	$("#spanDataURL").html(dataURL);
+	$("#spanRefreshSeconds").html(refreshSeconds);
+
+//	$("#delete_123").click(function() {
+
 
 
 });
 </script>
 <div id="connection_warn" style="text-align: center; width: 800px; padding: 10px; margin-right: auto; margin-left: auto; background-color: orange; color: white; display: none;" onclick="hideWarn()">
-	<h1>No Response From Server. Please check to make sure you are still connected to the internet</h1>
+	<h1>No Response From Server. Please check to make sure you are still connected to the Internet and have a valid data URL.</h1>
 </div>
 
 <div class="pure-g">
@@ -162,6 +199,19 @@ $(document).ready(function(){
 	<tbody>
 <!-- will insert data automatically here -->
 	</tbody>
+<!--
+	<tfoot>
+		<tr id="bottom_bar">
+			<td colspan="3">
+<button class="ui-button ui-widget ui-state-default ui-button-icon-only" role="button" aria-disabled="false" title="Hide Row">
+<span class="ui-button-icon-primary ui-icon ui-icon-trash"></span>
+<span class="ui-button-text">Hide Row</span>
+</button>
+			</td>
+		</tr>
+	</tfoot>
+-->
+			<!-- delete row: "ui-icon ui-icon-trash" -->
 </table>
 <!-- This table is sortable. Click and drag a row to re-order. -->
 	</div>
@@ -170,7 +220,10 @@ $(document).ready(function(){
 	<div class="pure-u-1 l-box">
 
 <h1>Meta Data</h1>
-Data source URL: <span id='spanDataURL'>loading</span>
+<ul>
+	<li>Data source URL: <span id='spanDataURL'>loading</span></li>
+	<li>Refresh Seconds: <span id='spanRefreshSeconds'>loading</li>
+</ul>
 
 	</div>
 </div>
