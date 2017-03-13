@@ -43,10 +43,16 @@ function filename(path){
 }
 
 function hideRow() {
-//	alert("Be a hideRow. The world needs more hidden rows.");
-	var bid = this.id; // button ID 
-	var trid = $(this).closest('tr').attr('id'); // table row ID 
-	$('#' + trid).hide();
+	/* find the button that got us here */
+	var bid = this.id; 
+	/* find the table row ID that the button is in */
+	var trid = $(this).closest('tr').attr('id');  
+
+	/* detach the row from autoData */
+	var moving = $('#' + trid).detach();
+	/* attach the row to autoDataHidden */
+	$("#autoDataHidden").append(moving);
+
 	console.log('hideRow() bid=' + bid + ' trid=' + trid);
 }
 
@@ -56,16 +62,18 @@ function loadNewData(){
 			hideWarn();
 
 			/* set the title of the page */
-			$(document).attr("title", data.title + ": wsSimpleDisplay");
+			if (  data.title !== undefined ) {
+				$(document).attr("title", data.title + ": wsSimpleDisplay");
+			}
 
 			/* iterate through data.sensors */
 			$.each(data.sensors, function( index, value ) {
 				if ( data.sensors[index].title !== undefined ) {
-					//Try to get tbody first with jquery children. works faster!
+					/* find the table body for autoData */
 					var tbody = $('#autoData').children('tbody');
 
 
-					var rowCode = '<tr id="autoData_' + index + '"><td class="right"><span style="font-weight: bold;">' + data.sensors[index].title + '</span></td><td>' + data.sensors[index].value + '</td><td>' + data.sensors[index].units + '<span class="ui-icon ui-icon-trash" />&nbsp;</span></td></tr>';
+					var rowCode = '<tr id="autoData_' + index + '"><td class="right"><span style="font-weight: bold;">' + data.sensors[index].title + '</span><br />(' + index + ')</td><td>' + data.sensors[index].value + '</td><td>' + data.sensors[index].units + '<span class="ui-icon ui-icon-trash" />&nbsp;</span></td></tr>';
 
 					if ( $("#autoData_" + index).length ) {
 						var wasHidden=false;
@@ -78,7 +86,7 @@ function loadNewData(){
 						$("#autoData_" + index).replaceWith(rowCode);
 												
 						if ( wasHidden ) {
-							$("#autoData_" + index).hide();
+//							$("#autoData_" + index).hide();
 						}	
 					} else {
 						console.log('adding row to table');
@@ -90,10 +98,12 @@ function loadNewData(){
 			$(".ui-icon-trash").bind("click",hideRow);
 
 			/* bind any action to any button in autoData table row */
-			$('#autoData tr input[type=button]').click(function(){
+			$('#autoData2 tr input[type=button]').click(function(){
 				var bid = this.id; // button ID 
 				var trid = $(this).closest('tr').attr('id'); // table row ID 
-				$('#' + trid).hide();
+				var moving = $('#' + trid).detach();
+				$("#autoDataHidden").append(moving);
+
 				console.log('bid=' + bid + ' trid=' + trid);
 				/* hide the first column */
 //				$('td:nth-child(1),th:nth-child(1)').hide();
@@ -188,6 +198,7 @@ $(document).ready(function(){
 	</div>
 
 	<div class="pure-u-1 pure-u-sm-1-2 l-box">
+<h2>Visible Rows</h2>
 <table id="autoData" class="pure-table pure-table-horizontal pure-table-striped">
 	<thead>
 		<tr>
@@ -214,15 +225,30 @@ $(document).ready(function(){
 			<!-- delete row: "ui-icon ui-icon-trash" -->
 </table>
 <!-- This table is sortable. Click and drag a row to re-order. -->
+
+<h2>Hidden Rows</h2>
+<table id="autoDataHidden" class="pure-table pure-table-horizontal pure-table-striped">
+	<thead>
+		<tr>
+			<th>title</th>
+			<th>value</th>
+			<th>units</th>
+		</tr>
+	</thead>
+	<tbody>
+<!-- will insert data automatically here -->
+	</tbody>
+</table>
 	</div>
+
 
 <!-- below image and data we get a full width div -->
 	<div class="pure-u-1 l-box">
 
 <h1>Meta Data</h1>
 <ul>
-	<li>Data source URL: <span id='spanDataURL'>loading</span></li>
-	<li>Refresh Seconds: <span id='spanRefreshSeconds'>loading</li>
+	<li>dataURL=<span id='spanDataURL'>loading</span></li>
+	<li>refreshSeconds: <span id='spanRefreshSeconds'>loading</li>
 </ul>
 
 	</div>
