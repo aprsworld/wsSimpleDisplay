@@ -91,13 +91,15 @@ function loadNewData(){
 			$.each(data.sensors, function( index, value ) {
 				if ( data.sensors[index].title !== undefined ) {
 					/* find the table body for autoData */
-					var tbody = $('#autoData').children('tbody');
+					var tbody;
 
-//					if ( -1 != $.inArray(index,hiddenDataID) ) {
-//						console.log(' hidden: ' + data.sensors[index].title);
-//					} else { 
-//						console.log('visible: ' + data.sensors[index].title);
-//					}
+					if ( -1 != $.inArray(index,hiddenDataID) ) {
+						/* autoDataHidden */
+						tbody = $('#autoDataHidden').children('tbody');
+					} else { 
+						/* autoData */
+						tbody = $('#autoData').children('tbody');
+					}
 
 
 					var rowCode = '<tr id="autoData_' + index + '"><td class="right"><span style="font-weight: bold;">' + data.sensors[index].title + '</span><br />(' + index + ')</td><td>' + data.sensors[index].value + '</td><td>' + data.sensors[index].units + '<span class="ui-icon ui-icon-trash" />&nbsp;</span></td></tr>';
@@ -113,22 +115,11 @@ function loadNewData(){
 
 				}
 			});
+			/* call the hideRow() when we click on any button with ui-icon-trash */
 			$(".ui-icon-trash").bind("click",hideRow);
 
-			/* bind any action to any button in autoData table row */
-			$('#autoData2 tr input[type=button]').click(function(){
-				var bid = this.id; // button ID 
-				var trid = $(this).closest('tr').attr('id'); // table row ID 
-				var moving = $('#' + trid).detach();
-				$("#autoDataHidden").append(moving);
 
-				console.log('bid=' + bid + ' trid=' + trid);
-				/* hide the first column */
-//				$('td:nth-child(1),th:nth-child(1)').hide();
-			});
-
-
-			$('#displayName').html(data.displayName);
+//			$('#displayName').html(data.displayName);
 
 			/* cameras */
 			if (  data.cameras[0].image_url !== undefined ) {
@@ -218,6 +209,7 @@ $(document).ready(function(){
 
 	<div class="pure-u-1 pure-u-sm-1-2 l-box">
 <table id="autoData" class="pure-table pure-table-horizontal pure-table-striped">
+<!--
 	<thead>
 		<tr>
 			<th>title</th>
@@ -225,6 +217,7 @@ $(document).ready(function(){
 			<th>units</th>
 		</tr>
 	</thead>
+-->
 	<tbody>
 <!-- will insert data automatically here -->
 	</tbody>
