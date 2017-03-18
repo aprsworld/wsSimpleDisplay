@@ -17,6 +17,15 @@
 	text-align: right;
 }
 
+.debug {
+	/* turned on with a URL parameter of debug=1 */
+	color: red;
+}
+
+.edit {
+	/* turned on with a URL parameter of edit=1 or by clicking edit button */
+}
+
 /* purecss border and padding */
 .pure-g > div {
 	-webkit-box-sizing: border-box;
@@ -33,12 +42,56 @@
 <script type="text/JavaScript">
 var dataURL="http://cam.aprsworld.com:8888/data/now.json/A4753";
 var refreshSeconds=5;
-
+var debug=false;
+var edit=false;
 //var hiddenDataID = ["48265c9ecebcb55c15662a5a66faa51a","00dac0c4199a50639db710d3c958908","0ca41badb637f4b03936f6d0e59e390c","cd836789f651b02071e05e045f9511b5"];
 var hiddenDataID = [];
 
-
+/* don't cache ajax data */
 $.ajaxSetup({ cache: false }); 
+
+/* turn on or off page editing */
+function pageEdit(editable) {
+	console.log("# pageEdit(" + editable + ")");
+
+	if ( editable ) {
+		/* make page editable */
+
+		/* edit button update label */
+		$('#button-edit').html('Save Page');
+
+		/* make auto data table sortable */
+		$('#autoData').children('tbody').sortable({
+			axis: 'y',
+			update: function (event, ui) {
+				var data = $(this).sortable('serialize');
+
+				console.log('sortable serialize: ' + data);
+
+				/* could do AJAX to send to server to store */
+		    	}
+		});
+
+	} else {
+		/* turn off editability */
+
+	
+		/* edit button update label */
+		$('#button-edit').html('Edit Page');
+
+		/* add CSS element for display: none to debug CSS */
+/*
+		$("head").append('<style type="text/css"></style>');
+		var newStyleElement = $("head").children(':last');
+		newStyleElement.html('.edit { display: none; }');
+*/
+
+
+	}
+
+	/* set global variable */
+	edit=editable;
+}
 
 /* extract filename after last / and before ? */
 function filename(path){
@@ -102,7 +155,7 @@ function loadNewData(){
 					}
 
 
-					var rowCode = '<tr id="autoData_' + index + '"><td class="right"><span style="font-weight: bold;">' + data.sensors[index].title + '</span><br />(' + index + ')</td><td>' + data.sensors[index].value + '</td><td>' + data.sensors[index].units + '<span class="ui-icon ui-icon-trash" />&nbsp;</span></td></tr>';
+					var rowCode = '<tr id="autoData_' + index + '"><td class="right"><span style="font-weight: bold;">' + data.sensors[index].title + '</span><span class="debug"><br />(' + index + ')</span></td><td>' + data.sensors[index].value + '</td><td>' + data.sensors[index].units + '<span class="edit ui-icon ui-icon-trash" />&nbsp;</span></td></tr>';
 
 					if ( $("#autoData_" + index).length ) {
 						/* replace row contents */
@@ -148,6 +201,7 @@ function hideWarn(){
 }
 
 $(document).ready(function(){
+	/* put URL parameters into $.urlParam */
 	$.urlParam = function(name){
 		var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
 		if ( results==null ) {
@@ -157,13 +211,30 @@ $(document).ready(function(){
 		}
 	}
 
+	/* process URL parameters */
 	if ( $.urlParam('dataURL') !== null && $.urlParam('dataURL').length ) {
 		dataURL=$.urlParam('dataURL');
 		console.log('# dataURL: ' + dataURL + ' (as specified from URL parameter)');
 	}
+
 	if ( $.urlParam('refreshSeconds') !== null && $.urlParam('refreshSeconds').length ) {
 		refreshSeconds=$.urlParam('refreshSeconds');
 		console.log('# refreshSeconds: ' + refreshSeconds + ' (as specified from URL parameter)');
+	}
+
+	if ( $.urlParam('debug') !== null && $.urlParam('debug').length && "1"===$.urlParam('debug') ) {
+		debug=true;
+		console.log('# debug: ' + debug + ' (as specified from URL parameter)');
+	} else {
+		/* add CSS element for display: none to debug CSS */
+		$("head").append('<style type="text/css"></style>');
+		var newStyleElement = $("head").children(':last');
+		newStyleElement.html('.debug { display: none; }');
+	}
+
+	if ( $.urlParam('edit') !== null && $.urlParam('edit').length && "1"===$.urlParam('edit') ) {
+		edit=true;
+		console.log('# edit: ' + edit + ' (as specified from URL parameter)');
 	}
 
 	/* setup AJAX data source */
@@ -174,18 +245,6 @@ $(document).ready(function(){
 	});
 	loadNewData();
 
-	/* make auto data table sortable */
-	$('#autoData').children('tbody').sortable({
-		axis: 'y',
-		update: function (event, ui) {
-			var data = $(this).sortable('serialize');
-
-			console.log('sortable serialize: ' + data);
-
-			/* could do AJAX to send to server to store */
-    	}
-	});
-
 	/* put dataURL on page */
 	$("#spanDataURL").html(dataURL);
 	$("#spanRefreshSeconds").html(refreshSeconds);
@@ -193,7 +252,13 @@ $(document).ready(function(){
 
 //	$("#delete_123").click(function() {
 
+	/* setup page editability */
+	pageEdit(edit);
 
+	/* bind edit button */
+	$('#button-edit').click( function () {
+			pageEdit(!edit);
+	});
 
 });
 </script>
@@ -204,7 +269,7 @@ $(document).ready(function(){
 <div class="pure-g">
 
 	<div class="pure-u-1 pure-u-sm-1-2 l-box">
-<a id="camStatic0_download"><img class="pure-img" src="http://data.asrichards.com/images/logo.png" id="camStatic0" alt="Web Camera 0" /></a>
+<a id="camStatic0_download"><img class="pure-img" src="http://www.aprsworld.com/images/logo_250.png" id="camStatic0" alt="Web Camera 0" /></a>
 	</div>
 
 	<div class="pure-u-1 pure-u-sm-1-2 l-box">
@@ -236,6 +301,7 @@ $(document).ready(function(){
 			<!-- delete row: "ui-icon ui-icon-trash" -->
 </table>
 <!-- This table is sortable. Click and drag a row to re-order. -->
+<button type="button" id="button-edit">Edit Page</button>
 
 <h2>Hidden Rows</h2>
 <table id="autoDataHidden" class="pure-table pure-table-horizontal pure-table-striped">
