@@ -10,9 +10,18 @@
 		<link rel="stylesheet" href="https://unpkg.com/purecss@0.6.2/build/pure-min.css">
 		<link rel="stylesheet" href="https://unpkg.com/purecss@0.6.2/build/grids-responsive-min.css">
 
+		<!-- jquery -->
 		<script type="text/javascript" src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+		<!-- jquery UI - gives us sortable and icons -->
 		<script type="text/javascript" src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
-<style>
+		<!-- jquery-popup-overlay - gives up popup & tooltips - http://dev.vast.com/jquery-popup-overlay/ -->
+		<script src="https://cdn.rawgit.com/vast-engineering/jquery-popup-overlay/1.7.13/jquery.popupoverlay.js"></script>
+
+		<!-- font awesome with info@aprsworld.com key -->
+		<script src="https://use.fontawesome.com/269a99f1b2.js"></script>
+
+		
+		<style>
 .right {
 	text-align: right;
 }
@@ -26,6 +35,10 @@
 	/* turned on with a URL parameter of edit=1 or by clicking edit button */
 }
 
+button {
+	margin: 10px;
+}
+
 /* purecss border and padding */
 .pure-g > div {
 	-webkit-box-sizing: border-box;
@@ -35,7 +48,7 @@
 .l-box {
 	padding: 1em;
 }
-</style>
+		</style>
 	</head>
 	<body>
 
@@ -160,7 +173,8 @@ function loadNewData(){
 					}
 
 
-					var rowCode = '<tr id="autoData_' + index + '"><td class="right"><span style="font-weight: bold;">' + data.sensors[index].title + '</span><span class="debug"><br />(' + index + ')</span></td><td>' + data.sensors[index].value + '</td><td>' + data.sensors[index].units + '<span class="edit ui-icon ui-icon-shuffle" />&nbsp;</span></td></tr>';
+
+					var rowCode = '<tr id="autoData_' + index + '"><td class="right"><span style="font-weight: bold;">' + data.sensors[index].title + '</span><span class="debug"><br />(' + index + ')</span></td><td>' + data.sensors[index].value + '</td><td>' + data.sensors[index].units + '&nbsp;<i class="edit fa fa-random"></i></td></tr>';
 
 					if ( $("#autoData_" + index).length ) {
 						/* replace row contents */
@@ -173,22 +187,27 @@ function loadNewData(){
 
 				}
 			});
-			/* call the hideRow() when we click on any button with ui-icon-shuffle */
-			$(".ui-icon-shuffle").bind("click",hideRow);
+			/* call the hideRow() when we click on any icon with fa-random class */
+			$(".fa-random").bind("click",hideRow);
 
 
 //			$('#displayName').html(data.displayName);
 
 			/* cameras */
 			if (  data.cameras[0].image_url !== undefined ) {
+				/* set the camera img src */
 				$("#camStatic0").attr("src", data.cameras[0].image_url);
+
+				/* full size image */
 				/* $("#camURLPrimary0").html(data.camURLPrimary0); */
 				/* $("#camURLPrimary0").attr("href", data.camURLPrimary0); */
 
-				/* clickable download */
+				/* full size image clickable download (may not work in all browsers) */
+/*
 				$("#camStatic0_download").attr("href", data.cameras[0].image_url); 
 				var downloadFilename=filename(dataURL) + "_0_" + filename(data.cameras[0].image_url);
 				$("#camStatic0_download").attr("download",downloadFilename);
+*/
 
 				$("#camStatic").show();
 			} else {
@@ -252,6 +271,7 @@ $(document).ready(function(){
 
 	/* put dataURL on page */
 	$("#spanDataURL").html(dataURL);
+	$("#spanDataURL").attr('href',dataURL);
 
 	/* determine station ID */
 	stationID=dataURL.split("/").pop();
@@ -269,16 +289,69 @@ $(document).ready(function(){
 			pageEdit(!edit);
 	});
 
+	// Initialize the plugin
+	$('#camera_popup').popup({
+		type: 'tooltip',
+		background: true,
+		autozindex: true,
+//		horizontal: 'leftedge',
+		vertical: 'topedge',
+		escape: true
+	});
+
+	$('.button-facebook').click( function() {
+		var shareurl = window.location.href;
+		window.open('https://www.facebook.com/sharer/sharer.php?u='+escape(shareurl)+'&t='+escape(document.title), '');
+//, 'menubar=no,toolbar=no,resizable=yes,scrollbars=yes,height=300,width=600');
+		return false;
+	});
+
 });
 </script>
 <div id="connection_warn" style="text-align: center; width: 800px; padding: 10px; margin-right: auto; margin-left: auto; background-color: orange; color: white; display: none;" onclick="hideWarn()">
 	<h1>No Response From Server. Please check to make sure you are still connected to the Internet and have a valid data URL.</h1>
 </div>
 
+
+<!-- popup when clicking on camera image -->
+<div id="camera_popup" style="background-color:rgba(255, 255, 255, 0.70); padding: 10px; border-radius: 10px; font-size: 2em;">
+		<button type="button" id="button-fullsize" style="display: block; width: 95%;">
+			<i class="fa fa-expand" aria-hidden="true" style="float: left; padding-top: 5px; padding-bottom: 5px; padding-right: 15px;"></i>
+			<span style="float: right;">View Full Size</span>
+		</button>
+
+		<button type="button" id="button-download" style="display: block; width: 95%;">
+			<i class="fa fa-download" aria-hidden="true" style="float: left; padding-top: 5px; padding-bottom: 5px; padding-right: 15px;"></i>
+			<span style="float: right;">Download Image</span>
+		</button>
+
+		<button type="button" id="button-email" style="display: block; width: 95%;">
+			<i class="fa fa-envelope" aria-hidden="true" style="float: left; padding-top: 5px; padding-bottom: 5px; padding-right: 15px;"></i>
+			<span style="float: right;">E-mail Link</span>
+		</button>
+
+		<button type="button" class="button-facebook" style="display: block; width: 95%;">
+			<i class="fa fa-facebook-official" aria-hidden="true" style="float: left; padding-top: 5px; padding-bottom: 5px; padding-right: 15px;"></i>
+			<span style="float: right;">Facebook Share</span>
+		</button>
+
+		<button type="button" id="button-edit2" style="display: block; width: 95%;">
+			<i class="fa fa-pencil" aria-hidden="true" style="float: left; padding-top: 5px; padding-bottom: 5px; padding-right: 15px;"></i>
+			<span style="float: right;">Edit Page</span>
+		</button>
+
+		<button type="button" class="camera_popup_close" style="display: block; width: 95%;">
+			<i class="fa fa-close" aria-hidden="true" style="float: left; padding-top: 5px; padding-bottom: 5px; padding-right: 15px;"></i>
+			<span style="float: right;">Close Menu</span>
+		</button>
+</div>
+
+
 <div class="pure-g">
 
 	<div class="pure-u-1 pure-u-sm-1-2 l-box" id="divCamStatic0">
-<a id="camStatic0_download"><img class="pure-img" src="http://www.aprsworld.com/images/logo_250.png" id="camStatic0" alt="Web Camera 0" /></a>
+		<a id="camStatic0_a" class="camera_popup_open"><img class="pure-img" src="http://www.aprsworld.com/images/logo_250.png" id="camStatic0" alt="Web Camera 0" /></a>
+
 	</div>
 
 	<div class="pure-u-1 pure-u-sm-1-2 l-box">
@@ -291,22 +364,7 @@ $(document).ready(function(){
 	<tbody>
 <!-- will insert data automatically here -->
 	</tbody>
-<!--
-	<tfoot>
-		<tr id="bottom_bar">
-			<td colspan="3">
-<button class="ui-button ui-widget ui-state-default ui-button-icon-only" role="button" aria-disabled="false" title="Hide Row">
-<span class="ui-button-icon-primary ui-icon ui-icon-shuffle"></span>
-<span class="ui-button-text">Hide Row</span>
-</button>
-			</td>
-		</tr>
-	</tfoot>
--->
-			<!-- delete row: "ui-icon ui-icon-shuffle" -->
 </table>
-<!-- This table is sortable. Click and drag a row to re-order. -->
-<button type="button" id="button-edit">Edit Page</button>
 
 <h2>Hidden Rows</h2>
 <table id="autoDataHidden" class="pure-table pure-table-horizontal pure-table-striped">
@@ -329,7 +387,7 @@ $(document).ready(function(){
 
 <h1>Meta Data</h1>
 <ul>
-	<li>dataURL=<span id='spanDataURL'>loading</span></li>
+	<li>dataURL=<a href="" id='spanDataURL'>loading</a></li>
 	<li>refreshSeconds: <span id='spanRefreshSeconds'>loading</li>
 	<li>hiddenDataID: <span id='spanHiddenDataID'>loading</li>
 </ul>
