@@ -69,30 +69,28 @@ $.ajaxSetup({ cache: false });
 function pageEdit(editable) {
 	console.log("# pageEdit(" + editable + ")");
 
+
 	if ( editable ) {
 		/* make page editable */
 
 		/* edit button update label */
-		$('#button-edit').html('Save Page');
+		var buttonCode='<i class="fa fa-floppy-o" aria-hidden="true" style="float: left; padding-top: 5px; padding-bottom: 5px; padding-right: 15px;"></i><span style="float: right;">Save Page</span>';
+		$('.button-edit').html(buttonCode);
 
-		/* make auto data table sortable */
-		$('#autoData').children('tbody').sortable({
-			axis: 'y',
-			update: function (event, ui) {
-				var data = $(this).sortable('serialize');
+		/* enable sortable on auto data table */
+		$('#autoData').children('tbody').sortable( "enable" );
 
-				console.log('sortable serialize: ' + data);
-
-				/* could do AJAX to send to server to store */
-		    	}
-		});
 
 	} else {
 		/* turn off editability */
 
 	
 		/* edit button update label */
-		$('#button-edit').html('Edit Page');
+		var buttonCode='<i class="fa fa-pencil" aria-hidden="true" style="float: left; padding-top: 5px; padding-bottom: 5px; padding-right: 15px;"></i><span style="float: right;">Edit Page</span>';
+		$('.button-edit').html(buttonCode);
+
+		/* disable sortable on auto data table */
+		$('#autoData').children('tbody').sortable( "disable" );
 
 		/* add CSS element for display: none to debug CSS */
 /*
@@ -202,12 +200,6 @@ function loadNewData(){
 				/* $("#camURLPrimary0").html(data.camURLPrimary0); */
 				/* $("#camURLPrimary0").attr("href", data.camURLPrimary0); */
 
-				/* full size image clickable download (may not work in all browsers) */
-/*
-				$("#camStatic0_download").attr("href", data.cameras[0].image_url); 
-				var downloadFilename=filename(dataURL) + "_0_" + filename(data.cameras[0].image_url);
-				$("#camStatic0_download").attr("download",downloadFilename);
-*/
 
 				$("#camStatic").show();
 			} else {
@@ -221,6 +213,28 @@ function loadNewData(){
 
 function hideWarn(){
 	$("#connection_warn").hide();
+}
+
+function downloadFile (sUrl, fileName) {
+	window.URL = window.URL || window.webkitURL;
+
+	var xhr = new XMLHttpRequest();
+	xhr.open('GET', sUrl, true);
+	xhr.responseType = 'blob';
+
+	xhr.onload = function(e) {
+		var res = xhr.response;               
+		var blob = new Blob([res], {type:"audio/mp3"});
+
+		url = window.URL.createObjectURL(blob);
+		var a = document.createElement("a");
+		document.body.appendChild(a);
+		a.style = "display: none";
+		a.href = url;
+		a.download = fileName.replace(/\./g,'')+'.mp3';
+		a.click();
+		window.URL.revokeObjectURL(url);
+	};
 }
 
 $(document).ready(function(){
@@ -277,17 +291,20 @@ $(document).ready(function(){
 	stationID=dataURL.split("/").pop();
 
 	$("#spanRefreshSeconds").html(refreshSeconds);
-//	$("#autoDataHidden").hide();
 
-//	$("#delete_123").click(function() {
+	/* make auto data table sortable */
+	$('#autoData').children('tbody').sortable({
+		axis: 'y',
+		update: function (event, ui) {
+			var data = $(this).sortable('serialize');
 
+			console.log('sortable serialize: ' + data);
+
+			/* could do AJAX to send to server to store */
+	    	}
+	});
 	/* setup page editability */
 	pageEdit(edit);
-
-	/* bind edit button */
-	$('#button-edit').click( function () {
-			pageEdit(!edit);
-	});
 
 	// Initialize the plugin
 	$('#camera_popup').popup({
@@ -297,6 +314,77 @@ $(document).ready(function(){
 //		horizontal: 'leftedge',
 		vertical: 'topedge',
 		escape: true
+	});
+
+	/* button handlers */
+	$('.button-edit').click( function() {
+		console.log("# button-edit clicked");
+		pageEdit(!edit);
+	});
+
+	$('.button-fullsize').click( function() {
+		console.log("# button-fullsize clicked");
+
+		/* find the full size image URL */
+		var url = $("#camStatic0").attr("src");
+		/* open new tab */
+		var win = window.open(url,'_blank');
+		/* focus on new tab */
+		win.focus();
+	});
+
+	$('.button-download').click( function() {
+		console.log("# button-download clicked");
+
+		/* find the full size image URL */
+		var url = $("#camStatic0").attr("src");
+
+		/* full size image clickable download (may not work in all browsers) */
+		var downloadFilename=filename(dataURL) + "_0_" + filename(url);
+		console.log("#    url='" + url + "'");
+		console.log("#    suggested download filename='" + downloadFilename + "'");
+
+		/* chrome won't allow suggested filename if image is coming from different origin.
+		so we do an XHR to get the image and then send it to the browser to download from ourself.
+		this requires the server with the images to have a permissive "Access-Control-Allow-Origin".
+		this can be done in apache with mod_headers and the following entry in a <VirtualHost> directive:
+		Header set Access-Control-Allow-Origin "*"
+		This XHR might not be nescessary for other browsers
+		*/
+		var xhr = new XMLHttpRequest();
+		xhr.open( "GET", url, true );
+		xhr.responseType = "arraybuffer";
+		xhr.onload = function( e ) {
+		    var arrayBufferView = new Uint8Array( this.response );
+		    var blob = new Blob( [ arrayBufferView ], { type: "image/jpeg" } );
+		    var urlCreator = window.URL || window.webkitURL;
+		    imageUrl = urlCreator.createObjectURL( blob );
+
+		    var link = document.createElement("a");
+		    link.href = imageUrl;
+		    link.download = downloadFilename;
+		    link.style.display = "none";
+		    var evt = new MouseEvent("click", {
+		        "view": window,
+		        "bubbles": true,
+		        "cancelable": true
+		    });
+		    document.body.appendChild(link);
+		    link.dispatchEvent(evt);
+		    document.body.removeChild(link);
+	};
+	xhr.send();
+
+	});
+
+	$('.button-email').click( function() {
+		console.log("# button-email clicked");
+
+		/* find the full size image URL */
+		var url = "mailto:?to=&subject=" + escape(document.title) + "&body=" + escape(window.location.href);
+		console.log("#    url='" + url + "'");
+		/* open mailto URL */
+		var win = window.open(url);
 	});
 
 	$('.button-facebook').click( function() {
@@ -315,29 +403,33 @@ $(document).ready(function(){
 
 <!-- popup when clicking on camera image -->
 <div id="camera_popup" style="background-color:rgba(0, 0, 255, 0.2); padding: 10px; border-radius: 10px; font-size: 2em; font-weight: bold;">
-		<button type="button" id="button-fullsize" style="display: block; width: 95%;">
+		<button type="button" class="button-fullsize" style="display: block; width: 95%;">
 			<i class="fa fa-expand" aria-hidden="true" style="float: left; padding-top: 5px; padding-bottom: 5px; padding-right: 15px;"></i>
 			<span style="float: right;">View Full Size</span>
 		</button>
 
-		<button type="button" id="button-download" style="display: block; width: 95%;">
+		<button type="button" class="button-download" style="display: block; width: 95%;">
 			<i class="fa fa-download" aria-hidden="true" style="float: left; padding-top: 5px; padding-bottom: 5px; padding-right: 15px;"></i>
 			<span style="float: right;">Download Image</span>
 		</button>
 
-		<button type="button" id="button-email" style="display: block; width: 95%;">
+		<button type="button" class="button-email" style="display: block; width: 95%;">
 			<i class="fa fa-envelope" aria-hidden="true" style="float: left; padding-top: 5px; padding-bottom: 5px; padding-right: 15px;"></i>
 			<span style="float: right;">E-mail Link</span>
 		</button>
 
+<!--
 		<button type="button" class="button-facebook" style="display: block; width: 95%;">
 			<i class="fa fa-facebook-official" aria-hidden="true" style="float: left; padding-top: 5px; padding-bottom: 5px; padding-right: 15px;"></i>
 			<span style="float: right;">Facebook Share</span>
 		</button>
+-->
 
-		<button type="button" id="button-edit2" style="display: block; width: 95%;">
+		<button type="button" class="button-edit" style="display: block; width: 95%;">
+<!--
 			<i class="fa fa-pencil" aria-hidden="true" style="float: left; padding-top: 5px; padding-bottom: 5px; padding-right: 15px;"></i>
 			<span style="float: right;">Edit Page</span>
+-->
 		</button>
 
 		<button type="button" class="camera_popup_close" style="display: block; width: 95%;">
@@ -349,11 +441,13 @@ $(document).ready(function(){
 
 <div class="pure-g">
 
+	<!-- camera image -->
 	<div class="pure-u-1 pure-u-sm-1-2 l-box" id="divCamStatic0">
 		<a id="camStatic0_a" class="camera_popup_open"><img class="pure-img" src="http://www.aprsworld.com/images/logo_250.png" id="camStatic0" alt="Web Camera 0" /></a>
 
 	</div>
 
+	<!-- data -->
 	<div class="pure-u-1 pure-u-sm-1-2 l-box">
 <table id="autoData" class="pure-table pure-table-horizontal pure-table-striped">
 	<thead>
@@ -366,6 +460,7 @@ $(document).ready(function(){
 	</tbody>
 </table>
 
+<!-- only available in edit mode -->
 <h2>Hidden Rows</h2>
 <table id="autoDataHidden" class="pure-table pure-table-horizontal pure-table-striped">
 	<thead>
