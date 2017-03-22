@@ -98,6 +98,10 @@ function pageEdit(editable) {
 		/* disable sortable on auto data table */
 		$('.connectedSortable').sortable( "disable" );
 
+		/* serialize our hidden table */
+		var data = $('#autoDataHidden').sortable('serialize');
+		console.log('# pageEdit() autoDataHidden serialize: ' + data);
+
 		/* add CSS element for display: none to edit CSS */
 		$('.edit').css({ 'visibility' : 'hidden'});
 //		$("head").append('<style type="text/css"></style>');
@@ -147,8 +151,6 @@ function loadNewData(){
 		return;
 	}
 	
-	console.log("# loadNewData() happening");
-
 	$.getJSON(dataURL, 
 		function(data) {
 			hideWarn();
@@ -291,14 +293,11 @@ $(document).ready(function(){
 		items: 'tbody > tr',
 		connectWith: ".connectedSortable",
 		axis: 'y',
+		/* events */
     		receive: function(e, ui) {
 			/* always puts at the end of the list */
 			 $(this).find("tbody").append(ui.item);
 		},
-		update: function (event, ui) {
-			var data = $(this).sortable('serialize');
-			console.log('sortable serialize from ' + event.target.id + ': ' + data);
-	    	},
 		start: function(e, ui) {
 			console.log('sortable start event');
 			/* disable loading new data so object references don't change mid update */
