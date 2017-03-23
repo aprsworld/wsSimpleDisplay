@@ -143,7 +143,71 @@ function hideRow() {
 	console.log('hideRow() tableid=' + tableid + ' trid=' + trid);
 
 	$("#spanHiddenDataID").html(hiddenDataID.toString());
+} 
+
+function updateRow(index,value,path) {
+	/* find the table body for autoData */
+	var tbody;
+
+	if ( -1 != $.inArray(index,hiddenDataID) ) {
+		/* autoDataHidden */
+		tbody = $('#autoDataHidden').children('tbody');
+	} else { 
+		/* autoData */
+		tbody = $('#autoData').children('tbody');
+	}
+
+
+	/* compose the row as HTML */
+	var rowCode = '<tr id="autoData_' + path + '_' + index + '"><td class="right"><span style="font-weight: bold;">' + value.title + '</span><span class="debug"><br />(' + path + ')</span></td><td>' + value.value + '</td><td>' + value.units + '&nbsp;</td></tr>';
+
+	if ( $("#autoData_" + path + '_' + index).length ) {
+		/* replace row contents */
+		$("#autoData_" + path + '_' + index).replaceWith(rowCode);
+	} else {
+		/* add row to table */
+		tbody.append(rowCode);
+	}
+
 }
+
+function walkData3(data,path) {
+//	console.log("# walkData() path='" + path + "'");
+//	console.log(data);
+
+	if ( data.title !== undefined ) {
+//		console.log("# '" + path + "' title is '" + data.title + "'");
+		delete data.title;
+	}
+
+	/* iterate through and print values */
+	$.each(data, function(key, value) {
+		if ( '_bserver_' === key || 'title' === key || 'cameras' === key ) {
+			return true;
+		}
+
+
+		/* check to see if we have an object, if so then act on or recurse */
+		for ( var property in value ) {
+			if ( '_bserver_' === property ) {
+				continue;
+			}
+
+			if ( value.title !== undefined && value.value !== undefined && property === 'value' ) {
+				updateRow(key,value,path);
+//				console.log("#\t\tdata element path='" + path + "' key='" + key + "' title='" + value.title + "' value='" + value.value + "'");
+//				console.log(value);
+				delete value.value;
+			} else if ( typeof value[property] == "object" ) {
+				walkData3(value,path + "_" + key);
+			}
+		}
+
+	});
+
+//	console.log("# returning walkData() path='" + path + "'");
+}
+
 
 function loadNewData(){
 	if ( pauseLoadNewData ) {
@@ -165,38 +229,18 @@ function loadNewData(){
 				$("#dataTitle").html(stationID + "<span style=\"font-size: 0.7em;\"><br />(site title not set)</span>");
 			}
 
+
+			walkData3(data,'root');
+
 			/* iterate through data.sensors */
 			$.each(data.sensors, function( index, value ) {
+
 				if ( data.sensors[index].title !== undefined ) {
-					/* find the table body for autoData */
-					var tbody;
-
-					if ( -1 != $.inArray(index,hiddenDataID) ) {
-						/* autoDataHidden */
-						tbody = $('#autoDataHidden').children('tbody');
-					} else { 
-						/* autoData */
-						tbody = $('#autoData').children('tbody');
-					}
-
-
-
-					var rowCode = '<tr id="autoData_' + index + '"><td class="right"><span style="font-weight: bold;">' + data.sensors[index].title + '</span><span class="debug"><br />(' + index + ')</span></td><td>' + data.sensors[index].value + '</td><td>' + data.sensors[index].units + '&nbsp;</td></tr>';
-
-					if ( $("#autoData_" + index).length ) {
-						/* replace row contents */
-						$("#autoData_" + index).replaceWith(rowCode);
-					} else {
-						/* add row to table */
-						console.log('adding row to table');
-						tbody.append(rowCode);
-					}
-
 				}
 			});
 
 			/* cameras */
-			if (  data.cameras[0].image_url !== undefined ) {
+			if (  data.cameras !== undefined && data.cameras[0].image_url !== undefined ) {
 				/* set the camera img src */
 				$("#camStatic0").attr("src", data.cameras[0].image_url);
 				$("#camStatic").show();
