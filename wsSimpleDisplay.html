@@ -56,12 +56,14 @@ button {
 	<body>
 
 <script type="text/JavaScript">
+var saveURL="http://data.aprsworld.com/wsSimpleDisplay/save.php";
 var dataURL="http://cam.aprsworld.com:8888/data/now.json/A4753";
 var refreshSeconds=5;
 var debug=false;
 var edit=false;
-//var hiddenDataID = ["48265c9ecebcb55c15662a5a66faa51a","00dac0c4199a50639db710d3c958908","0ca41badb637f4b03936f6d0e59e390c","cd836789f651b02071e05e045f9511b5"];
-var hiddenDataID = [];
+/* track our elements on page when done with editing */
+var idsAutoData = [];
+var idsAutoDataHidden = [];
 
 var stationID="";
 
@@ -69,6 +71,55 @@ var pauseLoadNewData=false;
 
 /* don't cache ajax data */
 $.ajaxSetup({ cache: false }); 
+
+function idsUpdate() {
+	console.log("# idsUpdate()");
+
+	/* create an array with ids, in order, to send back to server to save */
+	idsAutoDataHidden = $('table#autoDataHidden tr').map(function() {
+		if ( this.id !== undefined && this.id !== "" )
+			return this.id;
+	});
+
+	idsAutoData = $('table#autoData tr').map(function() {
+		if ( this.id !== undefined && this.id !== "" )
+			return this.id;
+	});
+}
+
+/* save our page layout and settings to remove server */
+function pageSave() {
+	console.log("# pageSave()");
+
+	/* make sure we have current ids locations */
+	idsUpdate();
+
+	/* create our data array to post to remove server */
+	var postData = {};
+
+	/* site name */
+	postData['dataURL']=dataURL;
+
+	/* loop through ids and make in url / PHP friendly flat format */
+	for ( var i=0 ; i<idsAutoData.length ; i++ ) {
+		postData['idsAutoData[' + i + ']']=idsAutoData[i];
+	}
+	for ( var i=0 ; i<idsAutoDataHidden.length ; i++ ) {
+		postData['idsAutoDataHidden[' + i + ']']=idsAutoDataHidden[i];
+	}
+
+	$.ajax({
+		url: saveURL,
+		type: 'POST',
+		data: postData
+	});
+
+
+	console.log(postData);
+
+
+
+}
 
 /* turn on or off page editing */
 function pageEdit(editable) {
@@ -79,14 +130,15 @@ function pageEdit(editable) {
 		/* make page editable */
 
 		/* edit button update label */
-		var buttonCode='<i class="fa fa-floppy-o" aria-hidden="true" style="float: left; padding-top: 5px; padding-bottom: 5px; padding-right: 15px;"></i><span style="float: right;">Save Page</span>';
+//		var buttonCode='<i class="fa fa-floppy-o" aria-hidden="true" style="float: left; padding-top: 5px; padding-bottom: 5px; padding-right: 15px;"></i><span style="float: right;">Finish Editing Page</span>';
+		var buttonCode='<i class="fa fa-pencil" aria-hidden="true" style="float: left; padding-top: 5px; padding-bottom: 5px; padding-right: 15px;"></i><span style="float: right;">Finish Editing Page</span>';
 		$('.button-edit').html(buttonCode);
 
 		/* enable sortable on auto data table */
 		$('.connectedSortable').sortable( "enable" );
 	
 		/* change edit to visible */
-		$('.edit').css({ 'visibility' : 'visible'});
+		$(".edit").show();
 
 
 	} else {
@@ -100,17 +152,9 @@ function pageEdit(editable) {
 		/* disable sortable on auto data table */
 		$('.connectedSortable').sortable( "disable" );
 
-		/* serialize our hidden table */
-		var data = $('#autoDataHidden').sortable('serialize');
-		console.log('# pageEdit() autoDataHidden serialize: ' + data);
 
-		/* add CSS element for display: none to edit CSS */
-		$('.edit').css({ 'visibility' : 'hidden'});
-//		$("head").append('<style type="text/css"></style>');
-//		var newStyleElement = $("head").children(':last');
-//		newStyleElement.html('.edit { display: none; }');
-
-
+		/* hide our edit sections */
+		$(".edit").hide();
 	}
 
 	/* set global variable */
@@ -123,43 +167,33 @@ function filename(path){
 	return (path.match(/[^.]+(\.[^?#]+)?/) || [])[0];
 }
 
-function hideRow() {
-	/* find the table row ID that the button is in */
-	var trid = $(this).closest('tr').attr('id');  
-	/* find the table ID that the button is in */
-	var tableid = $(this).closest('table').attr('id');  
-
-	if ( "autoData" === tableid ) {
-		/* add to hidden data IDs array, if it isn't there already */
-		if ( -1 == $.inArray(trid,hiddenDataID) ) {
-			hiddenDataID.push(trid);
-		}
-	} else {
-		/* remove from hidden data IDs array */
-		hiddenDataID.splice( $.inArray(trid, hiddenDataID), 1);
-	}
-
-
-	console.log('hideRow() tableid=' + tableid + ' trid=' + trid);
-
-	$("#spanHiddenDataID").html(hiddenDataID.toString());
-} 
 
 function updateRow(index,value,path) {
 	/* find the table body for autoData */
 	var tbody;
 
-	if ( -1 != $.inArray(index,hiddenDataID) ) {
-		/* autoDataHidden */
+	/* make more human readable path */
+	var pathPretty = 'Path: ' + path.replace("root_","").replace("_","&gt;");
+
+	if ( -1 != $.inArray(index,idsAutoDataHidden) ) {
+		/* put into autoDataHidden */
 		tbody = $('#autoDataHidden').children('tbody');
 	} else { 
-		/* autoData */
-		tbody = $('#autoData').children('tbody');
+		/* check to see if autoData_path exists */
+		if ( 0 == $('#autoData_' + path).length ) {
+			console.log('#autoData_' + path + ' does not exist. Adding.');
+
+			// $("#autoData").append('<tbody id="autoData_' + path + '"><tr><td id="autoData_' + path + '_head" style="background-color: red;" colspan="3">' + pathPretty + '</td></tr></tbody>');
+			$("#autoData").append('<tbody id="autoData_' + path + '"></tbody>');
+		}
+
+		/* autoData_path */
+		tbody = $('#autoData_' + path);
 	}
 
 
 	/* compose the row as HTML */
-	var rowCode = '<tr id="autoData_' + path + '_' + index + '"><td class="right"><span style="font-weight: bold;">' + value.title + '</span><span class="debug"><br />(' + path + ')</span></td><td>' + value.value + '</td><td>' + value.units + '&nbsp;</td></tr>';
+	var rowCode = '<tr id="autoData_' + path + '_' + index + '" title="' + pathPretty + '"><td class="right"><span style="font-weight: bold;">' + value.title + '</span><span class="debug"><br />(' + path + ')</span></td><td>' + value.value + '</td><td>' + value.units + '&nbsp;</td></tr>';
 
 	if ( $("#autoData_" + path + '_' + index).length ) {
 		/* replace row contents */
@@ -232,12 +266,17 @@ function loadNewData(){
 
 			walkData3(data,'root');
 
-			/* iterate through data.sensors */
-			$.each(data.sensors, function( index, value ) {
+			
+			if ( 0==$('#autoData tr > td').length ) {
+				/* no data, let's hide the divData */
+				$('#divData').hide();
+				/* and change the divCamStatic0 css to full width */
+				$('#divCamStatic0').attr('class','pure-u-1 l-box');
+			} else {
+				$('#divCamStatic0').attr('class','pure-u-1 pure-u-sm-1-2 l-box');
+				$('#divData').show();
 
-				if ( data.sensors[index].title !== undefined ) {
-				}
-			});
+			}
 
 			/* cameras */
 			if (  data.cameras !== undefined && data.cameras[0].image_url !== undefined ) {
@@ -255,28 +294,6 @@ function loadNewData(){
 
 function hideWarn(){
 	$("#connection_warn").hide();
-}
-
-function downloadFile (sUrl, fileName) {
-	window.URL = window.URL || window.webkitURL;
-
-	var xhr = new XMLHttpRequest();
-	xhr.open('GET', sUrl, true);
-	xhr.responseType = 'blob';
-
-	xhr.onload = function(e) {
-		var res = xhr.response;               
-		var blob = new Blob([res], {type:"audio/mp3"});
-
-		url = window.URL.createObjectURL(blob);
-		var a = document.createElement("a");
-		document.body.appendChild(a);
-		a.style = "display: none";
-		a.href = url;
-		a.download = fileName.replace(/\./g,'')+'.mp3';
-		a.click();
-		window.URL.revokeObjectURL(url);
-	};
 }
 
 $(document).ready(function(){
@@ -353,6 +370,7 @@ $(document).ready(function(){
 			console.log('sortable stop event');
 			/* resume updating data */
 			pauseLoadNewData=false;
+			idsUpdate();
 		}
 	});
 
@@ -360,7 +378,8 @@ $(document).ready(function(){
 	/* setup page editability */
 	pageEdit(edit);
 
-	// Initialize the plugin
+
+	/* button popup initialization */
 	$('#camera_popup').popup({
 		type: 'tooltip',
 		background: true,
@@ -371,6 +390,11 @@ $(document).ready(function(){
 	});
 
 	/* button handlers */
+	$('.button-save').click( function() {
+		console.log("# button-save clicked");
+		pageSave();
+	});
+
 	$('.button-edit').click( function() {
 		console.log("# button-edit clicked");
 		pageEdit(!edit);
@@ -486,6 +510,12 @@ $(document).ready(function(){
 -->
 		</button>
 
+		<!-- TODO: save button should only appear when there is something to save -->
+		<button type="button" class="button-save" style="display: block; width: 95%;">
+			<i class="fa fa-floppy-o" aria-hidden="true" style="float: left; padding-top: 5px; padding-bottom: 5px; padding-right: 15px;"></i>
+			<span style="float: right;">Save Page Layout</span>
+		</button>
+
 		<button type="button" class="camera_popup_close" style="display: block; width: 95%;">
 			<i class="fa fa-close" aria-hidden="true" style="float: left; padding-top: 5px; padding-bottom: 5px; padding-right: 15px;"></i>
 			<span style="float: right;">Close Menu</span>
@@ -502,19 +532,17 @@ $(document).ready(function(){
 	</div>
 
 	<!-- data -->
-	<div class="pure-u-1 pure-u-sm-1-2 l-box">
+	<div class="pure-u-1 pure-u-sm-1-2 l-box" id="divData">
 <table id="autoData" class="pure-table pure-table-horizontal pure-table-striped connectedSortable" style="width: 100%">
 	<thead>
 		<tr>
 			<th colspan="3" id="dataTitle" style="text-align: center"></th>
 		</tr>
 	</thead>
-	<tbody>
-<!-- will insert data automatically here -->
-	</tbody>
 </table>
 
 <!-- only available in edit mode -->
+<div class="edit">
 <h2>Hidden Data</h2>
 <table id="autoDataHidden" class="pure-table pure-table-horizontal pure-table-striped connectedSortable" style="width: 100%">
 	<thead>
@@ -529,16 +557,15 @@ $(document).ready(function(){
 	</tbody>
 </table>
 	</div>
-
+</div>
 
 <!-- below image and data we get a full width div -->
-	<div class="pure-u-1 l-box">
+	<div class="pure-u-1 l-box debug">
 
 <h1>Meta Data</h1>
 <ul>
 	<li>dataURL=<a href="" id='spanDataURL'>loading</a></li>
 	<li>refreshSeconds: <span id='spanRefreshSeconds'>loading</li>
-	<li>hiddenDataID: <span id='spanHiddenDataID'>loading</li>
 </ul>
 
 	</div>
