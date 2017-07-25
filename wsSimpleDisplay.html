@@ -22,6 +22,13 @@
 		<!-- font awesome with info@aprsworld.com key -->
 		<script src="https://use.fontawesome.com/269a99f1b2.js"></script>
 
+<script src="/wsBroadcast-WebClient/res/pako.min.js"></script>
+<script src="/wsBroadcast-WebClient/res/swfobject-2.2.min.js"></script> <!-- SWFObject [Flash fallback for web_socket_js] -->
+<script src="/wsBroadcast-WebClient/res/web-socket-js/web_socket.js"></script> <!-- git.com/gimite/web-socket-js WebSockets Compatibility Fall-Back library -->
+<!-- Global Settings for web-socket-js library -->
+<script>WEB_SOCKET_SWF_LOCATION = "/wsBroadcast-WebClient/res/web-socket-js/WebSocketMain.swf";</script>
+<script src="/wsBroadcast-WebClient/js/wsb-client.js"></script> <!-- WebSockets Broadcast Client -->
+
 		
 		<style>
 .right {
@@ -58,6 +65,7 @@ button {
 <script type="text/JavaScript">
 var saveURL="http://data.aprsworld.com/wsSimpleDisplay/save.php";
 var dataURL="http://cam.aprsworld.com:8888/data/now.json/A4753";
+var stationid = 'A4753';
 var refreshSeconds=5;
 var debug=false;
 var edit=false;
@@ -68,6 +76,66 @@ var idsAutoDataHidden = [];
 var stationID="";
 
 var pauseLoadNewData=false;
+
+
+/* wb_client */
+
+function bc_update(data) {
+
+	if (data[stationid]) {
+		hideWarn();
+		data = data[stationid];
+	} else {
+		return;
+	}
+
+	/* set the title of the page */
+	if (  data.title !== undefined ) {
+		$(document).attr("title", data.title + ": wsSimpleDisplay");
+		$("#dataTitle").html(data.title);
+	} else {
+		//$("#dataTitle").html(stationID + "<span style=\"font-size: 0.7em;\"><br />(site title not set)</span>");
+	}
+
+
+	walkData3(data,'root');
+
+
+	if ( 0==$('#autoData tr > td').length ) {
+		/* no data, let's hide the divData */
+		$('#divData').hide();
+		/* and change the divCamStatic0 css to full width */
+		$('#divCamStatic0').attr('class','pure-u-1 l-box');
+	} else {
+		$('#divCamStatic0').attr('class','pure-u-1 pure-u-sm-1-2 l-box');
+		$('#divData').show();
+	}
+
+	/* cameras */
+	if (  data.cameras !== undefined && data.cameras[0].image_url !== undefined ) {
+		/* set the camera img src */
+		$("#camStatic0").attr("src", data.cameras[0].image_url);
+		$("#camStatic").show();
+	} else {
+		$("#camStatic").hide();
+	}
+}
+
+function bc_error(errors, reconnect) {
+	console.log("no response from JSON server");
+	$("#connection_warn").show();
+	for (var i = 0; i < errors.length; i++) {
+		var error = errors[i];
+		$("#connection_warn").append(error);
+	}
+}
+
+var bc_object = new BroadcastClient({
+	callback_update: bc_update,
+	callback_error: bc_error
+});
+bc_object.filters_set([stationid]);
+$("#dataTitle").html(stationid + "<span style=\"font-size: 0.7em;\"><br />(site title not set)</span>");
 
 /* don't cache ajax data */
 $.ajaxSetup({ cache: false }); 
@@ -340,7 +408,7 @@ $(document).ready(function(){
 		$("#connection_warn").show();
 		$("#connection_warn").append(event);
 	});
-	loadNewData();
+	// DAR loadNewData();
 
 	/* put dataURL on page */
 	$("#spanDataURL").html(dataURL);
