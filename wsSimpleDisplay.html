@@ -60,7 +60,7 @@ button {
 
 <script type="text/JavaScript">
 var saveURL="http://data.aprsworld.com/wsSimpleDisplay/save.php";
-var dataURL="http://cam.aprsworld.com:8888/data/now.json/A4753";
+var dataURL="http://cam.aprsworld.com:8888/data/now.json";
 var stationid = 'A4753';
 var refreshSeconds=5;
 var debug=false;
@@ -127,6 +127,7 @@ function bc_error(errors, reconnect) {
 }
 
 var bc_object = new BroadcastClient({
+	url: dataURL,
 	callback_update: bc_update,
 	callback_error: bc_error
 });
