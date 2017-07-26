@@ -127,14 +127,6 @@ function bc_error(errors, reconnect) {
 	}
 }
 
-var bc_object = new BroadcastClient({
-	url: dataURL,
-	callback_update: bc_update,
-	callback_error: bc_error
-});
-bc_object.filters_set([stationid]);
-$("#dataTitle").html(stationid + "<span style=\"font-size: 0.7em;\"><br />(site title not set)</span>");
-
 /* don't cache ajax data */
 $.ajaxSetup({ cache: false }); 
 
@@ -430,6 +422,13 @@ $(document).ready(function(){
 		$("#connection_warn").append(event);
 	});
 	// DAR loadNewData();
+var bc_object = new BroadcastClient({
+	url: dataURL,
+	callback_update: bc_update,
+	callback_error: bc_error
+});
+bc_object.filters_set([stationid]);
+$("#dataTitle").html(stationid + "<span style=\"font-size: 0.7em;\"><br />(site title not set)</span>");
 
 	/* put dataURL on page */
 	$("#spanDataURL").html(dataURL);
