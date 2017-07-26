@@ -236,7 +236,7 @@ function filename(path){
 }
 
 
-function updateRow(index,value,path) {
+function updateRow(index,value,path,ts) {
 	/* find the table body for autoData */
 	var tbody;
 
@@ -271,6 +271,28 @@ function updateRow(index,value,path) {
 		tbody.append(rowCode);
 	}
 
+	// DAR
+	var $row = $('#autoData_' + path + '_' + index);
+	$row.data('ts', ts);
+	$row.on({
+		mouseenter: function(event) {
+			var ts = $('#autoData_' + path + '_' + index).data('ts');
+			var diff = ((new Date()).getTime() - ts) / 1000;
+			$('#row_popup').html('Updated ' + diff + ' seconds ago.');
+			$('#row_popup').popup({
+				tooltipanchor: $row,
+				vertical: 'bottomedge',
+				horizontal: 'rightedge',
+				autoopen: true,
+				type: 'tooltip'
+			});
+		},
+		mouseleave: function() {
+			$('#row_popup').popup('hide');
+		}
+	});
+	// !DAR
+
 }
 
 function walkData3(data,path) {
@@ -296,7 +318,8 @@ function walkData3(data,path) {
 			}
 
 			if ( value.title !== undefined && value.value !== undefined && property === 'value' ) {
-				updateRow(key,value,path);
+				var ts = data['_bserver_'][key].ts;
+				updateRow(key,value,path,ts);
 //				console.log("#\t\tdata element path='" + path + "' key='" + key + "' title='" + value.title + "' value='" + value.value + "'");
 //				console.log(value);
 				delete value.value;
@@ -602,6 +625,7 @@ $(document).ready(function(){
 	<!-- data -->
 	<div class="pure-u-1 pure-u-sm-1-2 l-box" id="divData">
 <table id="autoData" class="pure-table pure-table-horizontal pure-table-striped connectedSortable" style="width: 100%">
+	<div id="row_popup"></div>
 	<thead>
 		<tr>
 			<th colspan="3" id="dataTitle" style="text-align: center"></th>
