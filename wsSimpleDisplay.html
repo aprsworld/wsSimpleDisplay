@@ -119,7 +119,7 @@ function bc_update(data) {
 
 function bc_error(errors, reconnect) {
 	console.log("no response from JSON server");
-	$('#connection_warn").empty();
+	$("#connection_warn").empty();
 	$("#connection_warn").show();
 	for (var i = 0; i < errors.length; i++) {
 		var error = errors[i];
